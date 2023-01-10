@@ -1,4 +1,4 @@
-const { Given, When } = require("@wdio/cucumber-framework");
+const { Given, When, Then } = require("@wdio/cucumber-framework");
 const LoginPage = require('../../POM/Facebook/LoginPage');
 const LoginErrorPage = require('../../POM/Facebook/LoginErrorPage');
 const { expect } = require("chai");
@@ -10,9 +10,26 @@ const loginErrorPage = new LoginErrorPage();
 /**
  * Glue code is a regular expression which helps to map Scenario-steps with functions (step-definitions)
  */
-Given(/^I am on facebook$/, async function () {
-    await browser.url('/');
-    await browser.pause(5000);
+Given(/^I am on (facebook|hotels|darksky|yahoo|amazon)$/, async function (urlName) {
+    switch (urlName.toLowerCase()) {
+        case 'facebook':
+            await browser.url('/');
+            break;
+        case 'hotels':
+            await browser.url('https://www.hotels.com');
+            break;
+        case 'darksky':
+            await browser.url('https://www.darksky.net');
+            break;
+        case 'yahoo':
+            await browser.url('https://www.yahoo.com');
+            break;
+        case 'amazon':
+            await browser.url('https://www.amazon.com');
+            break;
+        default:
+            break;
+    }
 });
 
 // When(/^I type '(.*)' as username$/, async function (username) {
@@ -23,8 +40,11 @@ Given(/^I am on facebook$/, async function () {
 //     await loginPage.enterLoginPassword(pwd);
 // });
 
-
-When(/^I type '(.*)' as (.*)$/, async function (data, field) {
+/*
+    I type 'X' as username
+    I type 'X' as password
+*/
+When(/^I type '(.+)' as (username|password)$/, async function (data, field) {
     switch (field.toLowerCase()) {
         case 'username':
             await loginPage.enterLoginEmail(data);
@@ -46,7 +66,10 @@ When(/^I verify error is displayed$/, async function () {
     expect(await loginErrorPage.isLoginErrorDisplayed(), 'Login error is not displayed').to.be.true;
 });
 
-When(/^I verify login (.*) is enabled$/, async function (field) {
+/*
+    I verify login "A" is enabled
+*/
+When(/^I verify login "(email|password|button)" is enabled$/, async function (field) {
     let isFieldEnabled = false;
     switch (field.toLowerCase()) {
         case 'email':
@@ -62,5 +85,15 @@ When(/^I verify login (.*) is enabled$/, async function (field) {
             break;
     }
     expect(isFieldEnabled, `Login ${field} is NOT enabled`).to.be.true;
-    
+});
+
+When(/^I click on (.+) link$/, async function (linkName) {
+    this.totalWindowsBeforeClick = await loginPage.getCurrentWindowsCount();
+    await loginPage.clickLinkName(linkName);
+});
+
+Then(/^I verify opens in a new window with title "(.+)"$/, async function (pageTitle) {
+    loginPage.waitForNewLinkWindow(this.totalWindowsBeforeClick);
+    this.totalWindowsAfterClick = await loginPage.getCurrentWindowsCount();
+    expect(this.totalWindowsBeforeClick + 1, 'Number of windows are not as expected').to.equal(this.totalWindowsAfterClick);
 });
